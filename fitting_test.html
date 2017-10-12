@@ -43,7 +43,13 @@ ul#menu li {
         </p>
         <p>
           Function Form:
-          <input type="text" id="funcForm" value="Math.pow(1-Math.exp(-x), 2)" size="50">
+          <input type="text" id="funcForm" value="Math.pow(1-Math.exp(2-x), 2)" size="50">
+        </p>
+        <p>
+          Coordinate Scaling:
+          <input type="text" id="scalingForm" value="Math.exp(1-x)" size="50">
+        </p>
+        <p>
           <input type="button" id="setFuncForm" value="Set Function Form" onclick="setFuncForm()">
         </p>
         <style type="text/css">
@@ -74,7 +80,6 @@ ul#menu li {
             <div id="center_col">
                 <table id="layerTable" border="1">
                     <tr>
-                        <td>Id</td>
                         <td>Activation Type</td>
                         <td>Units</td>
                         <td> </td>

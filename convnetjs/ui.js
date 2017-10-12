@@ -1,5 +1,6 @@
 
-var funcForm="Math.pow(1-Math.exp(-x), 2)";
+var funcForm="Math.pow(1-Math.exp(2-x), 2)";
+var scalingForm="Math.exp(1-x)";
 var layerTypes = ["elu"];
 var layerUnits = ["10"];
 var allowedTypes=["elu", "relu", "tanh","sigmoid","linear"]
@@ -46,8 +47,9 @@ function createLayers(dropoutRate){
 
 function setFuncForm(e){
 	funcForm = document.getElementById('funcForm').value;
-    regen_data();
-    reload_reg();
+  scalingForm = document.getElementById('scalingForm').value;
+  regen_data();
+  reload_reg();
 }
 
 function updateLayerType(me){

@@ -11,7 +11,7 @@ var ntest = 50;
 var test_x;
 var true_values;
 var density = 5.0;
-var x_start=-1; 
+var x_start=1; 
 var x_end=4;
 var ss = 30.0; // scale for drawing
 var acc = 0;
@@ -104,8 +104,11 @@ function update_reg(){
 
   for(var iters=0;iters<50;iters++) {
     for(var ix=0;ix<N;ix++) {
-      netx.w = data[ix];
+      var x = data[ix];
+      netx.w[0] = eval(scalingForm);
       var stats = trainer.train(netx, labels[ix]);
+      //if(iters==1&&ix==1)
+      //window.alert('x:'+x+',scaled:'+eval(scalingForm)+",loss="+stats.loss);
       avloss += stats.loss;
     }
   }
@@ -127,9 +130,9 @@ function draw_reg(){
     ctx_reg.globalAlpha = 0.5;
     ctx_reg.beginPath();
     var c = 0;
-    for(var x=0.0; x<=WIDTH; x+= density) {
-
-      netx.w[0] = (x-WIDTH/2)/ss;
+    for(var x0=0.0; x0<=WIDTH; x0+= density) {
+      var x = (x0-WIDTH/2)/ss;
+      netx.w[0] = eval(scalingForm);
       var a = net.forward(netx);
       var y = a.w[0];
       sum_y[c].add(y);
@@ -143,8 +146,8 @@ function draw_reg(){
         neurons.push(net.layers[lix].out_act.w); // back these up
       }
 
-      if(x===0) ctx_reg.moveTo(x, -y*ss+HEIGHT/2);
-      else ctx_reg.lineTo(x, -y*ss+HEIGHT/2);
+      if(x0===0) ctx_reg.moveTo(x0, -y*ss+HEIGHT/2);
+      else ctx_reg.lineTo(x0, -y*ss+HEIGHT/2);
       c += 1;
     }
     // console.log('last ls2 = ' + ls2);
@@ -198,7 +201,7 @@ function draw_reg(){
     for(var i=0; i<ntest; i++) {
       x = test_x[i]*ss+WIDTH/2;
       y = -true_values[i]*ss+HEIGHT/2;
-      netx.w[0] = x;
+      netx.w[0] = eval(scalingForm);
       var a = net.forward(netx);
       prediction = a.w[0];
       error += Math.pow(prediction - true_values[i], 2)
