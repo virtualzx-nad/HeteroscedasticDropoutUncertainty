@@ -1,13 +1,18 @@
 // Tunable parameters:
-var N = 24;
-var p = 0.05;
-var l2 = 0.1; // p_l(w) = N(w; 0, l^{−2}I); l^{−2} = 10
+var N = 15;
+var dropoutRate = 0.05;
+var l2 = 0.01; // p_l(w) = N(w; 0, l^{−2}I); l^{−2} = 10
 
-var l2_decay = l2 * (1 - p) / (2 * N);
+var l2_decay = l2 * (1 - dropoutRate) / (2 * N);
 console.log('l2_decay = ' + l2_decay);
 
 var data, labels;
+var ntest = 50;
+var test_x;
+var true_values;
 var density = 5.0;
+var x_start=-1; 
+var x_end=4;
 var ss = 30.0; // scale for drawing
 var acc = 0;
 
@@ -18,9 +23,7 @@ layer_defs = [];
 layer_defs.push({type:'input', out_sx:1, out_sy:1, out_depth:1});
 // layer_defs.push({type:'dropout', drop_prob:p}); // this is not a good idea when we have a one dimensional input!
 layer_defs.push({type:'fc', num_neurons:10, activation:'elu'}); // num_neurons = num of outputs
-layer_defs.push({type:'dropout', drop_prob:p});
-layer_defs.push({type:'fc', num_neurons:10, activation:'elu'}); // num_neurons = num of outputs
-layer_defs.push({type:'dropout', drop_prob:p});
+layer_defs.push({type:'dropout', drop_prob:dropoutRate});
 layer_defs.push({type:'heteroscedastic_regression', num_neurons:2}); // this layer always adds one more fc layer
 
 var lix=2; // layer id of layer we'd like to draw outputs of
@@ -28,7 +31,7 @@ function reload_reg() {
   net = new convnetjs.Net();
   net.makeLayers(layer_defs);
 
-  trainer = new convnetjs.Trainer(net, {learning_rate:0.01, momentum:0.0, batch_size:12, l2_decay:l2_decay});
+  trainer = new convnetjs.Trainer(net, {learning_rate:0.01, momentum:0.3, batch_size:12, l2_decay:l2_decay});
 
   sum_y = Array();
   for(var x=0.0; x<=WIDTH; x+= density)
@@ -39,6 +42,19 @@ function reload_reg() {
   sum_sigma2 = Array();
   for(var x=0.0; x<=WIDTH; x+= density)
     sum_sigma2.push(new cnnutil.Window(100, 0));  
+  test_x = Array();
+  true_values = Array();
+  var x1, x2;
+  x1 = x_start - (x_end-x_start)/10;
+  x2 = x_end + (x_end-x_start)/10;
+  var dx = (x2-x1)/(ntest-1);
+  for(var i=0; i<ntest; i++){
+    var x = x1 + i * dx;
+    var y = eval(funcForm);
+    test_x.push(x);
+    true_values.push(y);
+  }
+
   acc = 0;
 }
  
@@ -52,13 +68,23 @@ function regen_data() {
   sum_sigma2 = Array();
   for(var x=0.0; x<=WIDTH; x+= density)
     sum_sigma2.push(new cnnutil.Window(100, 0));
+  test_x = Array();
+  true_values = Array();
+  var x1, x2;
+  x1 = x_start - (x_end-x_start)/5;
+  x2 = x_end + (x_end-x_start)/5;
+  var dx = (x2-x1)/(ntest-1);
+  for(var i=0; i<ntest; i++){
+    var x = x1 + i * dx;
+    var y = eval(funcForm);
+    test_x.push(x);
+    true_values.push(y);
+  }
   acc = 0;
   data = [];
   labels = [];
   for(var i=0;i<N;i++) {
-    var x = Math.random()*3-1.2;
-    if (x > 0.6) {x += 0.2;}
-    var w = randn(0, 0.03*0.03);
+    var x = Math.random()*(x_end-x_start)+x_start;
     var y = eval(funcForm); 
     data.push([x]);
     labels.push([y]);
@@ -164,8 +190,27 @@ function draw_reg(){
       drawCircle(data[i]*ss+WIDTH/2, -labels[i]*ss+HEIGHT/2, 5.0);
     }    
 
+    // Draw true function value
+    ctx_reg.beginPath();
+    ctx_reg.lineWidth = 2;
+    ctx_reg.strokeStyle = 'rgb(0,0,0)';
+    var error = 0.0;
+    for(var i=0; i<ntest; i++) {
+      x = test_x[i]*ss+WIDTH/2;
+      y = -true_values[i]*ss+HEIGHT/2;
+      netx.w[0] = x;
+      var a = net.forward(netx);
+      prediction = a.w[0];
+      error += Math.pow(prediction - true_values[i], 2)
+      if(i===0) ctx_reg.moveTo(x, y);
+      else ctx_reg.lineTo(x, y);
+    }
+    error = Math.sqrt(error / ntest);
+    ctx_reg.stroke();
+
     // Draw the mean plus minus 2 standard deviations
     ctx_reg.beginPath();
+    ctx_reg.lineWidth = 1;
     ctx_reg.strokeStyle = 'rgb(0,0,250)';
     var c = 0;
     for(var x=0.0; x<=WIDTH; x+= density) {
@@ -178,37 +223,68 @@ function draw_reg(){
     // Draw the uncertainty
     ctx_reg.fillStyle = 'rgb(0,0,250)';
     ctx_reg.globalAlpha = 0.2;
-    for(var i = 1; i <= 2; i++) {
-      ctx_reg.beginPath();
-      var c = 0;
-      var start = 0
-      for(var x=0.0; x<=WIDTH; x+= density) {
-        var mean = sum_y[c].get_average();
-        var std = Math.sqrt(sum_y_sq[c].get_average() - mean * mean + sum_sigma2[c].get_average());
-        mean += 2*std * i/2.;
-        pos = Math.min(Math.max(-mean*ss+HEIGHT/2, 0), HEIGHT);
-        if(x===0) {start = pos; ctx_reg.moveTo(x, start); }
-        else ctx_reg.lineTo(x, pos);
-        c += 1;
-      }
-      var c = sum_y.length - 1;
-      for(var x=WIDTH; x>=0.0; x-= density) {
-        var mean = sum_y[c].get_average();
-        var std = Math.sqrt(sum_y_sq[c].get_average() - mean * mean + sum_sigma2[c].get_average());
-        mean -= 2*std * i/2.;
-        pos = Math.min(Math.max(-mean*ss+HEIGHT/2, 0), HEIGHT);
-        ctx_reg.lineTo(x, pos);
-        c -= 1;
-      }
-      ctx_reg.lineTo(0, start);
-      ctx_reg.fill();
+    ctx_reg.beginPath();
+    var c = 0;
+    var start = 0
+    for(var x=0.0; x<=WIDTH; x+= density) {
+      var mean = sum_y[c].get_average();
+      var std = Math.sqrt(sum_y_sq[c].get_average() - mean * mean + sum_sigma2[c].get_average());
+      mean += std * 2;
+      pos = Math.min(Math.max(-mean*ss+HEIGHT/2, 0), HEIGHT);
+      if(x===0) {start = pos; ctx_reg.moveTo(x, start); }
+      else ctx_reg.lineTo(x, pos);
+      c += 1;
     }
+    var c = sum_y.length - 1;
+    for(var x=WIDTH; x>=0.0; x-= density) {
+      var mean = sum_y[c].get_average();
+      var std = Math.sqrt(sum_y_sq[c].get_average() - mean * mean + sum_sigma2[c].get_average());
+      mean -= std * 2;
+      pos = Math.min(Math.max(-mean*ss+HEIGHT/2, 0), HEIGHT);
+      ctx_reg.lineTo(x, pos);
+      c -= 1;
+    }
+    ctx_reg.lineTo(0, start);
+    ctx_reg.fill();
+
+    // Draw the aleatoric uncertainty  
+    ctx_reg.fillStyle = 'rgb(250,0,0)';
+    ctx_reg.globalAlpha = 1.;
+    ctx_reg.globalAlpha = 0.2;
+    ctx_reg.beginPath();
+    var c = 0;
+    var start = 0
+    for(var x=0.0; x<=WIDTH; x+= density) {
+      var mean = sum_y[c].get_average();
+      var std = Math.sqrt(sum_sigma2[c].get_average());
+      mean += std * 2;
+      pos = Math.min(Math.max(-mean*ss+HEIGHT/2, 0), HEIGHT);
+      if(x===0) {start = pos; ctx_reg.moveTo(x, start); }
+      else ctx_reg.lineTo(x, pos);
+      c += 1;
+    }
+    var c = sum_y.length - 1;
+    for(var x=WIDTH; x>=0.0; x-= density) {
+      var mean = sum_y[c].get_average();
+      var std = Math.sqrt(sum_sigma2[c].get_average());
+      mean -= std * 2;
+      pos = Math.min(Math.max(-mean*ss+HEIGHT/2, 0), HEIGHT);
+      ctx_reg.lineTo(x, pos);
+      c -= 1;
+    }
+    ctx_reg.lineTo(0, start);
+    ctx_reg.fill();
+
+
     ctx_reg.strokeStyle = 'rgb(0,0,0)';
     ctx_reg.globalAlpha = 1.;
 
     ctx_reg.fillStyle = "blue";
     ctx_reg.font = "bold 16px Arial";
-    ctx_reg.fillText("average loss: " + avloss, 20, 20);
+    ctx_reg.fillText("average loss: " + avloss, 20, 15);
+    ctx_reg.fillStyle = "red";
+    ctx_reg.font = "bold 16px Arial";
+    ctx_reg.fillText("RMSE: " + error, 20, 35);
 }
 
 // function addPoint(x, y){

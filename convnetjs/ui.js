@@ -15,7 +15,7 @@ function setNetworkOnClick(e){
   // Set Network Structure button is clicked.
   dropRateInput = document.getElementById('dropOutRate').value;
   l2_decay = l2 * (1 - dropRateInput) / (2 * N);
-  hetero = document.getElementById('hetero').checked;
+  //hetero = document.getElementById('hetero').checked;
   createLayers(dropRateInput);
   reload_reg();
 }
@@ -39,13 +39,8 @@ function createLayers(dropoutRate){
       if(i!=0) layer_defs.push({type:'dropout', drop_prob:dropoutRate});
       layer_defs.push({type:'fc', num_neurons:layerUnits[i], activation:layerTypes[i]});    
   }
-  if(hetero){
-    layer_defs.push({type:'heteroscedastic_regression', num_neurons:2});
-  }
-  else{
-    layer_defs.push({type:'regression', num_neurons:1});
-  }
-  window.alert('layers:'+layerTypes+', units:'+layerUnits);
+  layer_defs.push({type:'heteroscedastic_regression', num_neurons:2});
+  console.log('layers:'+layerTypes+', units:'+layerUnits);
 }
 
 
@@ -90,7 +85,7 @@ function addDeleteRow(me)
         layerUnits.push(newLayerUnits);
         var new_row = row.cloneNode(true);
         me.value = "Delete";
-        new_row.cells[0].innerHTML = nrows;
+        row.cells[0].innerHTML = nrows-1;
         inputs = new_row.getElementsByTagName('input');
         for (var i=0, iLen=inputs.length; i<iLen; i++) {
             if(inputs[i].type=='text') inputs[i].readOnly=false;
