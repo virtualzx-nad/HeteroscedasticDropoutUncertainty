@@ -17,9 +17,7 @@ var layer_defs, net, trainer, sum_y, sum_y_sq, sum_sigma2;
 layer_defs = [];
 layer_defs.push({type:'input', out_sx:1, out_sy:1, out_depth:1});
 // layer_defs.push({type:'dropout', drop_prob:p}); // this is not a good idea when we have a one dimensional input!
-layer_defs.push({type:'fc', num_neurons:20, activation:'relu'}); // num_neurons = num of outputs
-layer_defs.push({type:'dropout', drop_prob:p});
-layer_defs.push({type:'fc', num_neurons:20, activation:'sigmoid'});
+layer_defs.push({type:'fc', num_neurons:10, activation:'relu'}); // num_neurons = num of outputs
 layer_defs.push({type:'dropout', drop_prob:p});
 layer_defs.push({type:'heteroscedastic_regression', num_neurons:2}); // this layer always adds one more fc layer
 
@@ -28,7 +26,7 @@ function reload_reg() {
   net = new convnetjs.Net();
   net.makeLayers(layer_defs);
 
-  trainer = new convnetjs.SGDTrainer(net, {learning_rate:0.01, momentum:0.0, batch_size:12, l2_decay:l2_decay});
+  trainer = new convnetjs.Trainer(net, {learning_rate:0.01, momentum:0.0, batch_size:12, l2_decay:l2_decay});
 
   sum_y = Array();
   for(var x=0.0; x<=WIDTH; x+= density)
@@ -55,21 +53,14 @@ function regen_data() {
   acc = 0;
   data = [];
   labels = [];
-  for(var i=0;i<N-4;i++) {
-    // var x = Math.random()*10-5;
-    var x = 1.*i/(N-5)*10-5; // for reproducibility
-    var y = x*Math.sin(x);
+  for(var i=0;i<N;i++) {
+    var x = Math.random()*3-1.2;
+    if (x > 0.6) {x += 0.2;}
+    var w = randn(0, 0.03*0.03);
+    var y = eval(funcForm); 
     data.push([x]);
     labels.push([y]);
   }
-  data.push([7]);
-  labels.push([-7]);
-  data.push([8.5]);
-  labels.push([7]);
-  data.push([10]);
-  labels.push([-7]);
-  data.push([11.5]);
-  labels.push([7]);
 }
 
 function myinit(){
@@ -184,25 +175,27 @@ function draw_reg(){
     ctx_reg.stroke();
     // Draw the uncertainty
     ctx_reg.fillStyle = 'rgb(0,0,250)';
-    ctx_reg.globalAlpha = 0.1;
-    for(var i = 1; i <= 4; i++) {
+    ctx_reg.globalAlpha = 0.2;
+    for(var i = 1; i <= 2; i++) {
       ctx_reg.beginPath();
       var c = 0;
       var start = 0
       for(var x=0.0; x<=WIDTH; x+= density) {
         var mean = sum_y[c].get_average();
         var std = Math.sqrt(sum_y_sq[c].get_average() - mean * mean + sum_sigma2[c].get_average());
-        mean += 2*std * i/4.;
-        if(x===0) {start = -mean*ss+HEIGHT/2; ctx_reg.moveTo(x, start); }
-        else ctx_reg.lineTo(x, -mean*ss+HEIGHT/2);
+        mean += 2*std * i/2.;
+        pos = Math.min(Math.max(-mean*ss+HEIGHT/2, 0), HEIGHT);
+        if(x===0) {start = pos; ctx_reg.moveTo(x, start); }
+        else ctx_reg.lineTo(x, pos);
         c += 1;
       }
       var c = sum_y.length - 1;
       for(var x=WIDTH; x>=0.0; x-= density) {
         var mean = sum_y[c].get_average();
         var std = Math.sqrt(sum_y_sq[c].get_average() - mean * mean + sum_sigma2[c].get_average());
-        mean -= 2*std * i/4.;
-        ctx_reg.lineTo(x, -mean*ss+HEIGHT/2);
+        mean -= 2*std * i/2.;
+        pos = Math.min(Math.max(-mean*ss+HEIGHT/2, 0), HEIGHT);
+        ctx_reg.lineTo(x, pos);
         c -= 1;
       }
       ctx_reg.lineTo(0, start);
