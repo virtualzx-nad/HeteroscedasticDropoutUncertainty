@@ -5,65 +5,72 @@ ul#menu li {
     display:inline;
 }
 </style>
-	<head>
-		<title>Neural Network 1D Fit Uncertainties (Adapted from Yarin Gal's example)</title>
-		<script src="js/jquery.min.js"></script>
-		<!-- demos -->
-		<script src="convnetjs/convnet_heteroscedastic.js"></script>
-		<script src="convnetjs/ui.js"></script>
-		<script src="convnetjs/util.js"></script>
-		<script src="convnetjs/vis.js"></script>
-		<script src="convnetjs/npgmain.js"></script>
-		<script src="convnetjs/regression_uncertainty_heteroscedastic.js"></script>
-		<style type="text/css">
-			canvas { border: 1px solid white; }
-			p {text-align:center;}
-		</style>
-	</head>
-	<body style='font-family: Arial, "Times New Roman", Times, serif;'>
-		<h1>Regression with dropout uncertainty test</h1>
-		<p>
-		Gray: current values.  Blue: Mean.
-		<b>Click on the plot to add new data points</b></p>
-		<p>
-			Allowed activation types:  relu, elu, sigmoid, tanh, maxout, softmax. 
-			<b>Note: X.Z. Added elu but did not fully test its correctness! Looks OK though.</b>
-		</p>
-		<p>
-	    <div style="margin-left: auto; margin-right: auto; width: 700px">
-	   			<canvas id="NPGcanvas" width="500" height="300" style="background-image: url('images/dropout_error.png'); background-size: cover; opacity:0.4">Browser not supported for Canvas. Get a real browser.</canvas>
-	   	</div>
-		</p>
-		<p>
-			Function Form:
-			<input type="text" id="funcForm" value="Math.pow(1-Math.exp(-x), 2)" size="50">
-			<input type="button" id="setFuncForm" value="Set Function Form" onclick="setFuncForm()">
-		</p>
-		<style type="text/css">
-		#wrap {
-		   width:800px;
-		   margin:0 auto;
-		}
-		#left_col {
-		   float:left;
-		   width:150px;
-		}
-		#center_col{
-			display: inline-block;
-			width:400px;
-		}
-		#right_col {
-		   float:right;
-		   width:250px;
-		}
-		</style>
-		<div id="wrap">
-			<div id="left_col">
-				<input type="button" value="     Start     " onclick="show_reg()"><br>
-				<input type="button" value="Restart Network" onclick="reload_reg()"><br>
-				<input type="button" value="Regenerate Data" onclick="regen_data()"><br>
-				<input type="button" value="     Stop      " onclick="hide_reg()">
-			</div>
+    <head>
+        <title>Neural Network 1D Fit Uncertainties (Adapted from Yarin Gal's example)</title>
+        <script src="js/jquery.min.js"></script>
+        <!-- demos -->
+        <script src="convnetjs/convnet_heteroscedastic.js"></script>
+        <script src="convnetjs/ui.js"></script>
+        <script src="convnetjs/util.js"></script>
+        <script src="convnetjs/vis.js"></script>
+        <script src="convnetjs/npgmain.js"></script>
+        <script src="convnetjs/regression_uncertainty_heteroscedastic.js"></script>
+        <style type="text/css">
+            canvas { border: 1px solid white; }
+            h1 {text-align:center;}
+            p {text-align:center;}
+        </style>
+    </head>
+    <body style='font-family: Arial, "Times New Roman", Times, serif;'>
+        <h1>Regression with dropout uncertainty test</h1>
+        <p>
+        Gray curve: current values.  Blue curve: Mean.
+        Red halo:  Uncertainty from K-L Divergence.  Blue Halo: K-L Divergence+dropout
+        </p>
+        <p><b>Click on the plot to add new data points</b></p>
+
+        <p>
+            Allowed activation types:  relu, elu, sigmoid, tanh, linear. 
+            <b>Note: X.Z. Added elu but did not fully test its correctness! Looks OK though.</b>
+        </p>
+        <p>
+        <div style="margin-left: auto; margin-right: auto; width: 700px">
+            <canvas id="NPGcanvas" width="500" height="300"
+                    style="background-image: url('images/morse.png'); background-size: cover; opacity:0.4">
+            Browser not supported for Canvas. Get a real browser.
+            </canvas>
+        </div>
+        </p>
+        <p>
+          Function Form:
+          <input type="text" id="funcForm" value="Math.pow(1-Math.exp(-x), 2)" size="50">
+          <input type="button" id="setFuncForm" value="Set Function Form" onclick="setFuncForm()">
+        </p>
+        <style type="text/css">
+        #wrap {
+           width:800px;
+           margin:0 auto;
+        }
+        #left_col {
+           float:left;
+           width:150px;
+        }
+        #center_col{
+            display: inline-block;
+            width:400px;
+        }
+        #right_col {
+           float:right;
+           width:250px;
+        }
+        </style>
+        <div id="wrap">
+            <div id="left_col">
+                <input type="button" value="     Start     " onclick="show_reg()"><br>
+                <input type="button" value="Restart Network" onclick="reload_reg()"><br>
+                <input type="button" value="Regenerate Data" onclick="regen_data()"><br>
+                <input type="button" value="     Stop      " onclick="hide_reg()">
+            </div>
             <div id="center_col">
                 <table id="layerTable" border="1">
                     <tr>
@@ -73,42 +80,47 @@ ul#menu li {
                         <td> </td>
                     </tr>
                     <tr>
-                        <td>+</td>
-                        <td><input size=25 type="text" id="myacttype" value="elu"/></td>
-                        <td><input size=3 type="text" id="myunits" value="10"/></td>
+                        <td><input size=25 type="text" id="myacttype" value="elu"
+                                    onfocus="this.oldvalue=this.value;"
+                                    onchange="updateLayerType(this);this.oldvalue=this.value;"/>
+                        </td>
+                        <td><input size=3 type="text" id="myunits" value="10"
+                                    onfocus="this.oldvalue=this.value;"
+                                    onchange="updateLayerUnits(this);this.oldvalue=this.value;"/>
+                        </td>
                         <td><input type="button" id="delLayerButton" value="Add" onclick="addDeleteRow(this)"/></td>
                     </tr>
                 </table>
-				Dropout Rate: <input type="number" name="droprate" min="0.001" max="0.9" step="0.001" id="dropOutRate" value="0.05">
-				<input type="button" value="Set Network Parameters" onclick="setNetworkOnClick()">
-			</div>
-			<div id="right_col">
-				<form>
-				  <input type="radio" name="method" value="sgd" checked id="methodRadio"> SGD &nbsp &nbsp
-				  Momentum: <input name="momentum" type="number" value="0.3" min="0.0" max="100.0" step="0.01" id="sgdMomentum">
-				  <br>
-				  <input type="radio" name="method" value="adagrad" id="methodRadio">     Adagrad<br>
-				  <input type="radio" name="method" value="adadelta" id="methodRadio">    Adadelta<br>
-				  <input type="radio" name="method" value="windowgrad" id="methodRadio">  Windowgrad<br>
-				  <input type="radio" name="method" value="netsterov" id="methodRadio">   Netsterov<br>
-				  Learning Rate: <input name="learningrate" type="number" id="learningRate" value="0.01" min="0.001" max="1.0" step="0.001">
-				  <input type="button" value="Set Optimizer" onclick="setOptimizerOnClick()">
-				</form> 
-			</div>
-
-		</div>
-	<script>
-	    show_reg = function() {
-	    	$(NPGcanvas).css('opacity', 1); 
-	    	$(NPGcanvas).css('background-image', ''); 
-	    	NPGinit(10);
-	    };
-	    hide_reg = function() {
-	    	$(NPGcanvas).css('opacity', 0.4); 
-	    	$(NPGcanvas).css('background-image', 'url("images/dropout_error.png")'); 
-	    	window.clearInterval(NPG_interval);
-		    ctx_reg.clearRect(0,0,WIDTH,HEIGHT);
-	    };
-	</script>
-	</body>
+                Dropout Rate: <input type="number" name="droprate" min="0.001" max="0.9"
+                                     step="0.001" id="dropOutRate" value="0.05">
+                <input type="button" value="Set Network Parameters" onclick="setNetworkOnClick()">
+            </div>
+            <div id="right_col">
+                <form>
+                  <input type="radio" name="method" value="sgd" checked id="methodRadio"> SGD &nbsp &nbsp
+                  Momentum: <input name="momentum" type="number" value="0.3" min="0.0" max="100.0" step="0.01" id="sgdMomentum">
+                  <br>
+                  <input type="radio" name="method" value="adagrad" id="methodRadio">     Adagrad<br>
+                  <input type="radio" name="method" value="adadelta" id="methodRadio">    Adadelta<br>
+                  <input type="radio" name="method" value="windowgrad" id="methodRadio">  Windowgrad<br>
+                  <input type="radio" name="method" value="netsterov" id="methodRadio">   Netsterov<br>
+                  Learning Rate: <input name="learningrate" type="number" id="learningRate" value="0.01" min="0.001" max="1.0" step="0.001">
+                  <input type="button" value="Set Optimizer" onclick="setOptimizerOnClick()">
+                </form> 
+            </div>
+        </div>
+    <script>
+        show_reg = function() {
+            $(NPGcanvas).css('opacity', 1); 
+            $(NPGcanvas).css('background-image', ''); 
+            NPGinit(10);
+        };
+        hide_reg = function() {
+            $(NPGcanvas).css('opacity', 0.4); 
+            $(NPGcanvas).css('background-image', 'url("images/morse.png")'); 
+            window.clearInterval(NPG_interval);
+            ctx_reg.clearRect(0,0,WIDTH,HEIGHT);
+        };
+    </script>
+    </body>
 </html>

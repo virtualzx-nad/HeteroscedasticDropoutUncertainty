@@ -1,8 +1,8 @@
 
 var funcForm="Math.pow(1-Math.exp(-x), 2)";
-var layerTypes = Array();
-var layerUnits = Array();
-var allowedTypes=["elu", "relu", "tanh","sigmoid","conv","pool","softmax"]
+var layerTypes = ["elu"];
+var layerUnits = ["10"];
+var allowedTypes=["elu", "relu", "tanh","sigmoid","linear"]
 
 function setTrainer(method, learning_rate, momentum){
   trainer = new convnetjs.Trainer(net, {
@@ -50,6 +50,30 @@ function setFuncForm(e){
     reload_reg();
 }
 
+function updateLayerType(me){
+    var row=me.parentNode.parentNode;
+    var i=row.rowIndex;
+    var newLayerType = me.value.toLowerCase();
+    if (!allowedTypes.includes(newLayerType)){
+        window.alert("Invalid layer type:"+newLayerType);
+        me.value = me.oldvalue;
+        return;
+    }
+    layerTypes[i-1] = newLayerType;
+}
+
+function updateLayerUnits(me){
+    var row=me.parentNode.parentNode;
+    var i=row.rowIndex;
+    var newLayerUnits = Math.round(me.value);
+    if (isNaN(newLayerUnits)||newLayerUnits<1||newLayerUnits>1000){
+        window.alert("Invalid layer units:"+newLayerUnits);
+        me.value = me.oldvalue;
+        return;
+    }
+    layerUnits[i-1] = newLayerUnits;
+}
+
 function addDeleteRow(me)
 {
     var row=me.parentNode.parentNode;
@@ -69,28 +93,17 @@ function addDeleteRow(me)
                 }
             } 
             if(inputs[i].id=="myunits"){
-                newLayerUnits = inputs[i].value;
-                if (isNaN(newLayerUnits)||newLayerUnits<1){
+                newLayerUnits = Math.round(inputs[i].value);
+                if (isNaN(newLayerUnits)||newLayerUnits<1||newLayerUnits>1000){
                     window.alert("Invalid unit number:"+newLayerUnits);
                     return;
                 }
             } 
         }
-        for (var i=0, iLen=inputs.length; i<iLen; i++) {
-            if(inputs[i].type=='text') {
-                inputs[i].readOnly=true;   
-            }
-        }
         layerTypes.push(newLayerType);
         layerUnits.push(newLayerUnits);
         var new_row = row.cloneNode(true);
         me.value = "Delete";
-        row.cells[0].innerHTML = nrows-1;
-        inputs = new_row.getElementsByTagName('input');
-        for (var i=0, iLen=inputs.length; i<iLen; i++) {
-            if(inputs[i].type=='text') inputs[i].readOnly=false;
-        }
-
         mytable.appendChild( new_row );
     }
     else{

@@ -1,7 +1,7 @@
 // Tunable parameters:
 var N = 15;
 var dropoutRate = 0.05;
-var l2 = 0.01; // p_l(w) = N(w; 0, l^{−2}I); l^{−2} = 10
+var l2 = 0.1; // p_l(w) = N(w; 0, l^{−2}I); l^{−2} = 10
 
 var l2_decay = l2 * (1 - dropoutRate) / (2 * N);
 console.log('l2_decay = ' + l2_decay);
