@@ -1212,6 +1212,61 @@ var convnetjs = convnetjs || { REVISION: 'ALPHA' };
     }
   }
 
+
+  // X.Z. Implements elu nnonlinearity elementwise
+  // x -> (x if x>0;  exp(x)-1, if x<=0)
+  var EluLayer = function(opt) {
+    var opt = opt || {};
+    // computed
+    this.out_sx = opt.in_sx;
+    this.out_sy = opt.in_sy;
+    this.out_depth = opt.in_depth;
+    this.layer_type = 'elu';
+  }
+  EluLayer.prototype = {
+    forward: function(V, is_training) {
+      this.in_act = V;
+      var V2 = V.clone();
+      var N = V.w.length;
+      var V2w = V2.w;
+      for(var i=0;i<N;i++) { 
+        if(V2w[i] < 0) V2w[i] = Math.exp(V.w[i])-1.0; // threshold at 0
+        if(!isFinite(V2w[i])) console.log('Elu.forward: i:'+i+',V.w[i]:'+V.w[i]);
+      }
+      this.out_act = V2;
+      return this.out_act;
+    },
+    backward: function() {
+      var V = this.in_act; // we need to set dw of this
+      var V2 = this.out_act;
+      var N = V.w.length;
+      V.dw = global.zeros(N); // zero out gradient wrt data
+      for(var i=0;i<N;i++) {
+        if(V2.w[i] <= 0) V.dw[i] = (1.0 + V2.w[i]) * V2.dw[i]; // threshold
+        else V.dw[i] = V2.dw[i];
+      }
+    },
+    getParamsAndGrads: function() {
+      return [];
+    },
+    toJSON: function() {
+      var json = {};
+      json.out_depth = this.out_depth;
+      json.out_sx = this.out_sx;
+      json.out_sy = this.out_sy;
+      json.layer_type = this.layer_type;
+      return json;
+    },
+    fromJSON: function(json) {
+      this.out_depth = json.out_depth;
+      this.out_sx = json.out_sx;
+      this.out_sy = json.out_sy;
+      this.layer_type = json.layer_type; 
+    }
+  }
+
+
+
   // Implements Sigmoid nnonlinearity elementwise
   // x -> 1/(1+e^(-x))
   // so the output is between 0 and 1.
@@ -1442,6 +1497,7 @@ var convnetjs = convnetjs || { REVISION: 'ALPHA' };
   global.TanhLayer = TanhLayer;
   global.MaxoutLayer = MaxoutLayer;
   global.ReluLayer = ReluLayer;
+  global.EluLayer = EluLayer;
   global.SigmoidLayer = SigmoidLayer;
 
 })(convnetjs);
@@ -1686,6 +1742,7 @@ var convnetjs = convnetjs || { REVISION: 'ALPHA' };
             if(def.activation==='relu') { new_defs.push({type:'relu'}); }
             else if (def.activation==='sigmoid') { new_defs.push({type:'sigmoid'}); }
             else if (def.activation==='tanh') { new_defs.push({type:'tanh'}); }
+            else if (def.activation==='elu') { new_defs.push({type:'elu'}); }
             else if (def.activation==='maxout') {
               // create maxout activation, and pass along group size, if provided
               var gs = def.group_size !== 'undefined' ? def.group_size : 2;
@@ -1724,6 +1781,7 @@ var convnetjs = convnetjs || { REVISION: 'ALPHA' };
           case 'conv': this.layers.push(new global.ConvLayer(def)); break;
           case 'pool': this.layers.push(new global.PoolLayer(def)); break;
           case 'relu': this.layers.push(new global.ReluLayer(def)); break;
+          case 'elu': this.layers.push(new global.EluLayer(def)); break;
           case 'sigmoid': this.layers.push(new global.SigmoidLayer(def)); break;
           case 'tanh': this.layers.push(new global.TanhLayer(def)); break;
           case 'maxout': this.layers.push(new global.MaxoutLayer(def)); break;
@@ -1801,6 +1859,7 @@ var convnetjs = convnetjs || { REVISION: 'ALPHA' };
         var t = Lj.layer_type;
         var L;
         if(t==='input') { L = new global.InputLayer(); }
+        if(t==='elu') { L = new global.EluLayer(); }
         if(t==='relu') { L = new global.ReluLayer(); }
         if(t==='sigmoid') { L = new global.SigmoidLayer(); }
         if(t==='tanh') { L = new global.TanhLayer(); }

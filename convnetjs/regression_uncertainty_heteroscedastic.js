@@ -17,7 +17,9 @@ var layer_defs, net, trainer, sum_y, sum_y_sq, sum_sigma2;
 layer_defs = [];
 layer_defs.push({type:'input', out_sx:1, out_sy:1, out_depth:1});
 // layer_defs.push({type:'dropout', drop_prob:p}); // this is not a good idea when we have a one dimensional input!
-layer_defs.push({type:'fc', num_neurons:10, activation:'relu'}); // num_neurons = num of outputs
+layer_defs.push({type:'fc', num_neurons:10, activation:'elu'}); // num_neurons = num of outputs
+layer_defs.push({type:'dropout', drop_prob:p});
+layer_defs.push({type:'fc', num_neurons:10, activation:'elu'}); // num_neurons = num of outputs
 layer_defs.push({type:'dropout', drop_prob:p});
 layer_defs.push({type:'heteroscedastic_regression', num_neurons:2}); // this layer always adds one more fc layer
 
